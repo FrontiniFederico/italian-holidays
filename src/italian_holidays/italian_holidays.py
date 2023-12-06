@@ -1,49 +1,51 @@
 #!/bin/python
 from datetime import datetime, timedelta
 import sys
+from dotenv import load_dotenv
+import os
+import json
 
-class italian_holidays():
+load_dotenv()
+holiday_list = json.loads(os.getenv('STANDARD_HOLYDAYS', " "))
 
-	def __init__(self, custom_holidays = []):
-		self._custom_holidays = custom_holidays
 
-	def is_holiday(self, date):
+class ItalianHolidays():
+	
+	def __init__(self, custom_holidays: list = []):
 
-		if isinstance(date, str) == False and isinstance(date, datetime) == False:
-			return sys.exit('is_holiday can accept only string or datetime object')
-		date_obj = date
+		self._custom_holidays: list = custom_holidays
+
+	def is_holiday(self, date: datetime) -> bool:
+		"""Method tha determines whether a given day is a holiday
+
+		:param date: the day the user is querying about
+		:type date: datetime
+		:return: the outcome
+		:rtype: bool
+		"""
+
+		if not isinstance(date, str) and not isinstance(date, datetime):
+			raise TypeError('is_holiday can accept only string or datetime object')
+		date_obj: datetime = date
 		if isinstance(date, str):
-			date_obj = datetime.strptime(date, '%Y-%m-%d')
-		if date_obj is None:
-			return sys.exit('date must be in the format \'Y-m-d\'')
-		if date_obj.month == 1 and date_obj.day == 1:
+			try:
+				date_obj: datetime = datetime.strptime(date, '%Y-%m-%d')
+			except ValueError:
+				raise ValueError('date must be in the format \'Y-m-d\'')
+		# we first check whether the date object is a standard holyday
+		# as in those holydays that always happen the same day
+		date_str: str = f"{date_obj.month}-{date_obj.day}"
+		if date_str in holiday_list:
 			return True
-		if date_obj.month == 1 and date_obj.day == 6:
-			return True
+		# we now check if it's Easter
 		if date_obj.month == self._easter(date_obj).month and date_obj.day == self._easter(date_obj).day:
 			return True
 		if date_obj.month == self._easter_monday(date_obj).month and date_obj.day == self._easter_monday(date_obj).day:
 			return True
-		if date_obj.month == 4 and date_obj.day == 25:
-			return True
-		if date_obj.month == 5 and date_obj.day == 1:
-			return True
-		if date_obj.month == 6 and date_obj.day == 2:
-			return True
-		if date_obj.month == 8 and date_obj.day == 15:
-			return True
-		if date_obj.month == 11 and date_obj.day == 1:
-			return True
-		if date_obj.month == 12 and date_obj.day == 8:
-			return True
-		if date_obj.month == 12 and date_obj.day == 25:
-			return True
-		if date_obj.month == 12 and date_obj.day == 26:
-			return True
-		if len(self._custom_holidays) > 0:
+		if self._custom_holidays:
 			for custom_holiday in self._custom_holidays:
-				if isinstance(custom_holiday, str) == False and isinstance(custom_holiday, datetime) == False:
-					return sys.exit('custom holidays can accept only array of string or datetime object')
+				if not isinstance(custom_holiday, str) and not isinstance(custom_holiday, datetime):
+					raise TypeError('custom holidays can accept only list of strings or datetime objects')
 				custom_date_obj = custom_holiday
 				if isinstance(custom_holiday, str):
 					custom_date_obj = datetime.strptime(custom_holiday, '%m-%d')
@@ -79,15 +81,15 @@ class italian_holidays():
 		if date_obj.month == 11 and date_obj.day == 1:
 			name = 'All Saints\' Day'
 		if date_obj.month == 12 and date_obj.day == 8:
-			name = 'Feast of the Immaculate Conception'
+			name = 'Solemnity of the Immaculate Conception'
 		if date_obj.month == 12 and date_obj.day == 25:
 			name = 'Christmas Day'
 		if date_obj.month == 12 and date_obj.day == 26:
 			name = 'St. Stephen\'s Day'
-		if len(self._custom_holidays) > 0:
+		if self._custom_holidays:
 			for custom_holiday in self._custom_holidays:
-				if isinstance(custom_holiday, str) == False and isinstance(custom_holiday, datetime) == False:
-					return sys.exit('custom holidays can accept only array of string or datetime object')
+				if not isinstance(custom_holiday, str) and not isinstance(custom_holiday, datetime):
+					raise TypeError('custom holidays can accept only array of string or datetime object')
 				custom_date_obj = custom_holiday
 				if isinstance(custom_holiday, str):
 					custom_date_obj = datetime.strptime(custom_holiday, '%m-%d')
@@ -95,7 +97,7 @@ class italian_holidays():
 					return 'Custom holiday'
 		return name
 
-	def _easter(self, date):
+	def _easter(self, date: datetime):
 		''' 
 		***********************
 		WORKS FROM 1900 TO 2199
