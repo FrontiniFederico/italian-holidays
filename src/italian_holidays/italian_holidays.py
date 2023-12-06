@@ -1,12 +1,14 @@
 #!/bin/python
 from datetime import datetime, timedelta
 import sys
-from dotenv import load_dotenv
 import os
 import json
+import math
 
-load_dotenv()
-holiday_list = json.loads(os.getenv('STANDARD_HOLYDAYS', " "))
+with open('holidays.json') as file_json:
+	standard_holidays: dict[str, str] = json.load(file_json)
+
+print(standard_holidays["1-1"])
 
 
 class ItalianHolidays():
@@ -35,7 +37,7 @@ class ItalianHolidays():
 		# we first check whether the date object is a standard holyday
 		# as in those holydays that always happen the same day
 		date_str: str = f"{date_obj.month}-{date_obj.day}"
-		if date_str in holiday_list:
+		if date_str in standard_holidays:
 			return True
 		# we now check if it's Easter
 		if date_obj.month == self._easter(date_obj).month and date_obj.day == self._easter(date_obj).day:
@@ -97,40 +99,44 @@ class ItalianHolidays():
 					return 'Custom holiday'
 		return name
 
-	def _easter(self, date: datetime):
-		''' 
-		***********************
-		WORKS FROM 1900 TO 2199
-		***********************
-		'''
-		gold_numbers = {0: 19, 1: 45, 2: 34, 3: 23, 4: 42, 5: 31, 6: 49, 7: 39, 8: 28, 9: 47, 10: 36, 11: 25, 12: 44, 13: 33, 14: 22, 15: 41, 16: 30, 17: 48, 18: 38, 19: 27}
-		cycle_19_year = 1918
-		year = int(date.strftime('%Y'))
-		modulo = (year + 1) % 19
-		gold_number = gold_numbers[modulo]
-		if gold_number <= 31:
-			full_moon = datetime(year, 3, gold_number)
-			easter_date = None
-			if full_moon.weekday() == 6:
-				easter_date = full_moon + timedelta(days= 7)
-			else:
-				easter_date = full_moon
-				while easter_date.weekday() != 6:
-					easter_date = easter_date + timedelta(days= 1)
-			if (easter_date.year - cycle_19_year) % 19 == 0:
-				easter_date = easter_date + timedelta(days=7)
-			return easter_date
+	def _easter(self, year: str) -> str:
+		"""Implementation of the Gauss algorithm to find Easter
+
+		:param year: the year to check
+		:type year: str
+		:return: Easter Sunday
+		:rtype: str
+		"""
+		easter: str = ""
+		# Only God and Gauss know how he came up with this stuff
+		A = year % 19
+		B = year % 4
+		C = year % 7
+		P = math.floor(year / 100)
+		Q = math.floor((13 + 8 * P) / 25)
+		M = (15 - Q + P - P // 4) % 30
+		N = (4 + P - P // 4) % 7
+		D = (19 * A + M) % 30
+		E = (2 * B + 4 * C + 6 * D + N) % 7
+		days: int = (22 + D + E)
+		# A corner case,
+		# when D is 29
+		if ((D == 29) and (E == 6)):
+			easter = year + "-04-19"
+		# Another corner case,
+		# when D is 28
+		elif ((D == 28) and (E == 6)):
+			easter = year + "-04-18"
 		else:
-			day = gold_number - 31
-			full_moon = datetime(year, 4, day)
-			easter_date = None
-			if full_moon.weekday() == 6:
-				easter_date = full_moon + timedelta(days= 7)
+			# If days > 31, move to April
+			# April = 4th Month
+			if (days > 31):
+				easter = year + "-04-" + (days - 31)
 			else:
-				easter_date = full_moon
-				while easter_date.weekday() != 6:
-					easter_date = easter_date + timedelta(days= 1)
-			return easter_date
+				# Otherwise, stay on March
+				# March = 3rd Month
+				easter = year +"-03-" + days
+		return easter
 
 	def _easter_monday(self, date):
 		return self._easter(date) + timedelta(1)
