@@ -138,5 +138,7 @@ class ItalianHolidays():
 				easter = year +"-03-" + days
 		return easter
 
-	def _easter_monday(self, date):
-		return self._easter(date) + timedelta(1)
+	def _easter_monday(self, year) -> str:
+		easter: str = self._easter(year)
+		easter_monday_date: datetime = datetime.strptime(easter, "%Y-%m-%d") + timedelta(days=1)
+		return easter_monday_date.strftime("%Y-%m-%d")
