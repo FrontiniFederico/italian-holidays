@@ -1,4 +1,3 @@
-#!/bin/python
 from datetime import datetime, timedelta
 import sys
 import os
@@ -6,9 +5,7 @@ import json
 import math
 
 with open('holidays.json') as file_json:
-	standard_holidays: dict[str, str] = json.load(file_json)
-
-print(standard_holidays["1-1"])
+	holidays_dict: dict[str, str] = json.load(file_json)
 
 
 class ItalianHolidays():
@@ -25,74 +22,49 @@ class ItalianHolidays():
 		:return: the outcome
 		:rtype: bool
 		"""
+		# from the year in the date passed to the caller 
+		# we add easter related holidays to the dict
+		self._add_easter_holidays(year=int(date.year))
 
 		if not isinstance(date, str) and not isinstance(date, datetime):
 			raise TypeError('is_holiday can accept only string or datetime object')
-		date_obj: datetime = date
+		date_obj: datetime | str = date
 		if isinstance(date, str):
 			try:
-				date_obj: datetime = datetime.strptime(date, '%Y-%m-%d')
+				date_obj = datetime.strptime(date, '%Y-%m-%d')
 			except ValueError:
 				raise ValueError('date must be in the format \'Y-m-d\'')
-		# we first check whether the date object is a standard holyday
-		# as in those holydays that always happen the same day
+		# we then check whether the date is in there
 		date_str: str = f"{date_obj.month}-{date_obj.day}"
-		if date_str in standard_holidays:
+		if date_str in holidays_dict:
 			return True
-		# we now check if it's Easter
-		if date_obj.month == self._easter(date_obj).month and date_obj.day == self._easter(date_obj).day:
-			return True
-		if date_obj.month == self._easter_monday(date_obj).month and date_obj.day == self._easter_monday(date_obj).day:
-			return True
-		if self._custom_holidays:
-			for custom_holiday in self._custom_holidays:
-				if not isinstance(custom_holiday, str) and not isinstance(custom_holiday, datetime):
-					raise TypeError('custom holidays can accept only list of strings or datetime objects')
-				custom_date_obj = custom_holiday
-				if isinstance(custom_holiday, str):
-					custom_date_obj = datetime.strptime(custom_holiday, '%m-%d')
-				if date_obj.month == custom_date_obj.month and date_obj.day == custom_date_obj.day:
-					return True
+		for custom_holiday in self._custom_holidays:
+			if not isinstance(custom_holiday, str) and not isinstance(custom_holiday, datetime):
+				raise TypeError('custom holidays can accept only list of strings or datetime objects')
+			custom_date_obj: datetime | str = custom_holiday
+			if isinstance(custom_holiday, str):
+				custom_date_obj = datetime.strptime(custom_holiday, '%m-%d')
+			if date_obj.month == custom_date_obj.month and date_obj.day == custom_date_obj.day:
+				return True
 		return False
 
 	def holiday_name(self, date):
-		if isinstance(date, str) == False and isinstance(date, datetime) == False:
-			return sys.exit('holiday_name can accept only string or datetime object')
-		date_obj = date
-		if isinstance(date, str):
-			date_obj = datetime.strptime(date, '%Y-%m-%d')
-		if date_obj is None:
-			return sys.exit('date must be in the format \'Y-m-d\'')
-		name = None
-		if date_obj.month == 1 and date_obj.day == 1:
-			name = 'New Year\'s Day'
-		if date_obj.month == 1 and date_obj.day == 6:
-			name = 'Epiphany'
-		if date_obj.month == self._easter(date_obj).month and date_obj.day == self._easter(date_obj).day:
-			name = 'Easter Sunday'
-		if date_obj.month == self._easter_monday(date_obj).month and date_obj.day == self._easter_monday(date_obj).day:
-			name = 'Easter Monday'
-		if date_obj.month == 4 and date_obj.day == 25:
-			name = 'Liberation Day'
-		if date_obj.month == 5 and date_obj.day == 1:
-			name = 'Labor Day / May Day'
-		if date_obj.month == 6 and date_obj.day == 2:
-			name = 'Republic Day'
-		if date_obj.month == 8 and date_obj.day == 15:
-			name = 'Ferragosto'
-		if date_obj.month == 11 and date_obj.day == 1:
-			name = 'All Saints\' Day'
-		if date_obj.month == 12 and date_obj.day == 8:
-			name = 'Solemnity of the Immaculate Conception'
-		if date_obj.month == 12 and date_obj.day == 25:
-			name = 'Christmas Day'
-		if date_obj.month == 12 and date_obj.day == 26:
-			name = 'St. Stephen\'s Day'
+		if not isinstance(date, str) and not (date, datetime):
+			raise TypeError('is_holiday can accept only string or datetime object')
+		date_obj: datetime | str = date
+		try:
+				date_obj = datetime.strptime(date, '%Y-%m-%d')
+		except ValueError:
+				raise ValueError('date must be in the format \'Y-m-d\'')
+		date_str: str = f"{date_obj.month}-{date_obj.day}"
+		name: str = None
+		if date_str in holidays_dict:
+			name = holidays_dict[date_str]
 		if self._custom_holidays:
 			for custom_holiday in self._custom_holidays:
 				if not isinstance(custom_holiday, str) and not isinstance(custom_holiday, datetime):
 					raise TypeError('custom holidays can accept only array of string or datetime object')
-				custom_date_obj = custom_holiday
+				custom_date_obj: datetime | str = custom_holiday
 				if isinstance(custom_holiday, str):
 					custom_date_obj = datetime.strptime(custom_holiday, '%m-%d')
 				if date_obj.month == custom_date_obj.month and date_obj.day == custom_date_obj.day:
@@ -142,3 +114,11 @@ class ItalianHolidays():
 		easter: str = self._easter(year)
 		easter_monday_date: datetime = datetime.strptime(easter, "%Y-%m-%d") + timedelta(days=1)
 		return easter_monday_date.strftime("%Y-%m-%d")
+	
+	def _add_easter_holidays(self, year: str) -> None:
+		easter: str = self._easter(year=year)
+		easter_monday: str = self._easter_monday(year=year)
+		easter = easter[:-5]
+		easter_monday = easter_monday[:-5]
+		holidays_dict[easter] = "Easter Sunday"
+		holidays_dict[easter_monday] = "Easter Monday"
