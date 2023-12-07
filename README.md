@@ -1,6 +1,6 @@
 # ItalianHolidays
 
-A simple Python helper class to determine Italian holidays with the possibility to set custom holidays. Easter holidays' calculation will work for dates between 1900-2199.
+A simple Python helper class to determine Italian holidays with the possibility to set custom holidays. Easter holidays' calculation will work for dates > 1582.
 
 [![PyPI status](https://img.shields.io/pypi/status/italian-holidays.svg)](https://pypi.python.org/pypi/italian-holidays/)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/italian-holidays.svg)](https://pypi.python.org/pypi/italian-holidays/)
